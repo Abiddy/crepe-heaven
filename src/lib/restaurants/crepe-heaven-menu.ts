@@ -1,0 +1,168 @@
+export type MenuEntry = {
+  name: string;
+  price: number;
+  photo?: string;
+};
+
+export type MenuSection = {
+  id: string;
+  title: string;
+  blurb: string;
+  note?: string;
+  items: MenuEntry[];
+};
+
+const p = (file: string) => `/grape/menu/${file}.jpg`;
+
+export const crepeHeavenMenu: MenuSection[] = [
+  {
+    id: "sweet",
+    title: "Sweet Crepes",
+    blurb: "Nutella, fresh fruit, honey, and house spreads, folded warm to order.",
+    note: "Make any crepe gluten-free for $2.99.",
+    items: [
+      { name: "Nutella & Strawberry", price: 15.99, photo: p("strawberrynutella") },
+      { name: "Nutella, Strawberry & Banana", price: 17.99, photo: p("strawberry-banana") },
+      { name: "Apple Delight", price: 15.99, photo: p("appledelight") },
+      { name: "Nutella & Espresso", price: 15.99, photo: p("nutellaespresso") },
+      { name: "Berry Delight", price: 16.99, photo: p("bananastrawberry-blueberry") },
+      { name: "Nutella, Banana, Blueberry & Blackberry", price: 17.99, photo: p("img-5704-3") },
+      { name: "Jam Crepe", price: 14.99, photo: p("jamcrepe") },
+      { name: "Strawberry, Lemon & Sugar", price: 14.99, photo: p("sugarlemon") },
+      { name: "Fresh Apple, Brown Sugar & Cinnamon", price: 16.99 },
+      { name: "Blue Delight", price: 16.5 },
+      { name: "Sweet Bananas", price: 16.99 },
+      { name: "One Spread", price: 14.99 },
+      { name: "La Lechera & Strawberries", price: 16.99 },
+      { name: "Belgium", price: 14.99 },
+      { name: "Nutella & Blackberry", price: 16.99 },
+      { name: "Nutella & Banana", price: 15.99 },
+      { name: "Nutella, Banana & Coconut", price: 16.99 },
+      { name: "Nutella, Banana & Blackberry", price: 16.99 },
+      { name: "Nutella & Blueberry", price: 15.99 },
+      { name: "Nutella & Raspberry", price: 15.99 },
+      { name: "Nutella, Raspberry & Strawberry", price: 16.99 },
+      { name: "Sugar & Butter", price: 14.99 },
+      { name: "Strawberry, Lemon & Jam", price: 15.99 },
+      { name: "Jam, Banana & Coconut", price: 15.99 },
+      { name: "Lemon Cream", price: 14.99 },
+      { name: "Ricotta, Apple Sauce & Cinnamon", price: 16.99 },
+      { name: "Ricotta & Jam", price: 15.99 },
+      { name: "Honey, Banana & Almond", price: 16.99 },
+      { name: "Nutella, Almond, Banana & Coconut", price: 16.99 },
+      { name: "Honey, Almond, Banana & Coconut", price: 16.99 },
+      { name: "Honey & Almond", price: 15.99 },
+      { name: "Cream Cheese & Jam", price: 15.99 },
+      { name: "Cream Cheese & Nutella", price: 15.99 },
+      { name: "Nutella", price: 12.99 },
+      { name: "Plain", price: 9.99 },
+    ],
+  },
+  {
+    id: "savory",
+    title: "Savory Crepes",
+    blurb: "Cheese, smoked turkey, eggs, and fresh greens for breakfast, lunch, or dinner.",
+    note: "Make any crepe gluten-free for $2.99.",
+    items: [
+      { name: "Cheese, Ham & Egg", price: 17.99, photo: p("ham-egg") },
+      { name: "Grilled Chicken", price: 19.99 },
+      { name: "Crepe Heaven Special", price: 19.99 },
+      { name: "Mr. G Special", price: 19.99 },
+      { name: "Cheese", price: 13.99 },
+      { name: "Cheese, Avocado & Tomato", price: 15.99 },
+      { name: "Cheese & Ham", price: 17.99 },
+      { name: "Cheese, Spinach & Egg", price: 17.99 },
+      { name: "Cheese, Tomato & Mushroom", price: 13.99 },
+      { name: "Feta & Spinach", price: 16.99 },
+      { name: "Tuna", price: 16.99 },
+      { name: "Smoked Turkey, Cheese & Cranberry", price: 17.99 },
+      { name: "Smoked Turkey, Cheese & Eggs", price: 17.99 },
+      { name: "Smoked Turkey & Cheese", price: 16.99 },
+    ],
+  },
+  {
+    id: "sandwiches",
+    title: "Sandwiches",
+    blurb: "Toasted sandwiches and pressed paninis for a lighter bite.",
+    items: [
+      { name: "Fried Egg Sandwich", price: 10.99, photo: p("eggsandwich") },
+      { name: "Croissant & Egg Sandwich", price: 11.99 },
+      { name: "Avocado Toast with Egg", price: 10.99 },
+      { name: "Turkey & Ham Panini", price: 12.99 },
+      { name: "Grilled Chicken", price: 12.99 },
+      { name: "Tuna Melt Panini", price: 11.99 },
+      { name: "Tuna Sandwich", price: 11.99 },
+      { name: "Turkey Sandwich", price: 10.99 },
+      { name: "Veggie Sandwich", price: 9.99 },
+      { name: "Grilled Cheese", price: 8 },
+    ],
+  },
+  {
+    id: "bakery",
+    title: "Waffles & Bakery",
+    blurb: "Fresh waffles, buttery pastries, and little treats to go with your coffee.",
+    items: [
+      { name: "Waffle", price: 10.99, photo: p("waffle") },
+      { name: "Mini Pancakes", price: 10.99, photo: p("minipancake") },
+      { name: "Croissant", price: 4.99, photo: p("croissant") },
+      { name: "Cannelé", price: 3.99, photo: p("cannele") },
+      { name: "Banana Bread", price: 4, photo: p("banannabread") },
+      { name: "Mini Cookies (3)", price: 1.99, photo: p("cookies") },
+      { name: "Chocolate Chip Cookie", price: 4 },
+      { name: "Fresh Apple", price: 1.75 },
+      { name: "Banana", price: 1 },
+    ],
+  },
+  {
+    id: "bowls",
+    title: "Açaí & Smoothies",
+    blurb: "Chilled bowls, blended fruit, and fresh-squeezed juice.",
+    items: [
+      { name: "Açaí Bowl", price: 11.99, photo: p("acaibowl") },
+      { name: "Berry Smoothie", price: 6.99, photo: p("smoothie") },
+      { name: "Fresh Orange Juice", price: 5.99, photo: p("freshsqueezedorangejuice") },
+      { name: "Strawberry & Banana Smoothie", price: 6.99 },
+      { name: "Mango & Avocado Smoothie", price: 8.99 },
+      { name: "Protein Shake", price: 6.99 },
+    ],
+  },
+  {
+    id: "coffee",
+    title: "Coffee & Drinks",
+    blurb: "Espresso drinks, frappuccinos, tea, and cold drinks.",
+    items: [
+      { name: "Latte", price: 4.99, photo: p("latte") },
+      { name: "Espresso", price: 3.5, photo: p("espresso") },
+      { name: "Shakerato", price: 4, photo: p("shakerato") },
+      { name: "Espresso con Panna", price: 3.99, photo: p("espressoconpanna") },
+      { name: "Americano", price: 3 },
+      { name: "Double Espresso", price: 5.99 },
+      { name: "Cappuccino", price: 5.99 },
+      { name: "Macchiato", price: 4.99 },
+      { name: "Vanilla Latte", price: 4.99 },
+      { name: "Mocha", price: 4 },
+      { name: "White Chocolate Mocha", price: 4 },
+      { name: "Matcha Latte", price: 3.25 },
+      { name: "Caramel Frappuccino", price: 5.99 },
+      { name: "Mocha Frappuccino", price: 4.99 },
+      { name: "Iced Coffee", price: 2.99 },
+      { name: "Espresso Affogato", price: 7.99 },
+      { name: "Hot Chocolate", price: 3.99 },
+      { name: "Hot Tea", price: 2.99 },
+      { name: "Steamed or Cold Milk", price: 2.99 },
+      { name: "Canned Soda", price: 1.99 },
+      { name: "Bottled Soda", price: 2.99 },
+      { name: "Energy Drink", price: 3.25 },
+      { name: "Water", price: 1.99 },
+    ],
+  },
+  {
+    id: "ice-cream",
+    title: "Ice Cream",
+    blurb: "A cold, sweet finish.",
+    items: [
+      { name: "Ice Cream Sandwich", price: 9.99, photo: p("icecreamsandwich") },
+      { name: "Ice Cream", price: 4.99 },
+    ],
+  },
+];
