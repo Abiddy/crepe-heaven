@@ -169,25 +169,62 @@ type Payer = {
   idempotencyKey: string;
 };
 
+export type DeliveryAddress = { street: string; unit: string; city: string; zip: string };
+
 export async function placePickupOrder(input: Payer & { lines: CartLine[] }) {
   return createAndPay(await buildOrder(input.lines), input, {
-    schedule_type: "ASAP",
-    prep_time_duration: "PT20M",
+    type: "PICKUP",
+    pickup_details: {
+      schedule_type: "ASAP",
+      prep_time_duration: "PT20M",
+      recipient: { display_name: input.name, phone_number: input.phone },
+    },
   });
 }
 
 export async function placeCateringOrder(
-  input: Payer & { selection: CateringSelection; pickupAt: string; email: string; notes: string },
+  input: Payer & {
+    selection: CateringSelection;
+    at: string;
+    delivery: DeliveryAddress | null;
+    email: string;
+    notes: string;
+  },
 ) {
-  const note = [`CATERING for ${input.selection.plates}`, input.email && `Email: ${input.email}`, input.notes]
+  const note = [
+    `CATERING ${input.delivery ? "DELIVERY" : "PICKUP"} for ${input.selection.plates}`,
+    input.email && `Email: ${input.email}`,
+    input.notes,
+  ]
     .filter(Boolean)
     .join(" · ")
     .slice(0, 500);
-  return createAndPay(await buildCateringOrder(input.selection), input, {
-    schedule_type: "SCHEDULED",
-    pickup_at: input.pickupAt,
-    note,
-  });
+  const recipient = { display_name: input.name, phone_number: input.phone };
+  const fulfillment = input.delivery
+    ? {
+        type: "DELIVERY",
+        delivery_details: {
+          schedule_type: "SCHEDULED",
+          deliver_at: input.at,
+          note,
+          recipient: {
+            ...recipient,
+            address: {
+              address_line_1: input.delivery.street,
+              address_line_2: input.delivery.unit || undefined,
+              locality: input.delivery.city,
+              administrative_district_level_1: "CA",
+              postal_code: input.delivery.zip,
+              country: "US",
+            },
+          },
+        },
+      }
+    : {
+        type: "PICKUP",
+        pickup_details: { schedule_type: "SCHEDULED", pickup_at: input.at, note, recipient },
+      };
+  return createAndPay(await buildCateringOrder(input.selection), input, fulfillment);
 }
 
 /** Saves a review-drawing entrant as a Square customer. One entry per phone number per drawing. */
@@ -216,7 +253,7 @@ export async function addDrawingEntry(input: { googleName: string; phone: string
   return { alreadyEntered: false };
 }
 
-async function createAndPay(order: object, input: Payer, pickup: Record<string, string>) {
+async function createAndPay(order: object, input: Payer, fulfillment: { type: string } & Record<string, unknown>) {
   const config = squareConfig()!;
   const { order: created } = await square<{ order: OrderTotals & { id: string } }>("/v2/orders", {
     method: "POST",
@@ -225,16 +262,7 @@ async function createAndPay(order: object, input: Payer, pickup: Record<string, 
       order: {
         ...order,
         source: { name: "Crepe Heaven website" },
-        fulfillments: [
-          {
-            type: "PICKUP",
-            state: "PROPOSED",
-            pickup_details: {
-              ...pickup,
-              recipient: { display_name: input.name, phone_number: input.phone },
-            },
-          },
-        ],
+        fulfillments: [{ ...fulfillment, state: "PROPOSED" }],
       },
     }),
   });
@@ -252,7 +280,7 @@ async function createAndPay(order: object, input: Payer, pickup: Record<string, 
         location_id: config.locationId,
         autocomplete: true,
         buyer_phone_number: input.phone,
-        note: `Pickup for ${input.name}`,
+        note: `${fulfillment.type === "DELIVERY" ? "Delivery" : "Pickup"} for ${input.name}`,
       }),
     },
   );

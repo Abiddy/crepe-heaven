@@ -485,7 +485,7 @@ export function CrepeChat({ restaurant }: { restaurant: RestaurantConfig }) {
     switch (intent) {
       case "catering":
         pushAssistant(
-          `Catering is ${formatPrice(CATERING.platePrice)} a plate with a ${CATERING.minPlates}-plate minimum. Every plate comes with a crepe and a drink, and you can pick up to ${CATERING.maxCrepes} crepes for your group. Order online at least ${CATERING.leadDays} days ahead and pick it up at the café.`,
+          `Catering is ${formatPrice(CATERING.platePrice)} a plate with a ${CATERING.minPlates}-plate minimum. Every plate comes with a crepe and a drink, and you can pick up to ${CATERING.maxCrepes} crepes for your group. Order online at least ${CATERING.leadDays} days ahead and we'll deliver it to your event, or you can pick it up at the café.`,
           { kind: "catering" },
         );
         break;
@@ -680,7 +680,7 @@ export function CrepeChat({ restaurant }: { restaurant: RestaurantConfig }) {
               {[
                 "A crepe and a drink on every plate",
                 `Choose up to ${CATERING.maxCrepes} sweet or savory crepes`,
-                `Pickup at the café, booked ${CATERING.leadDays}+ days ahead`,
+                `Delivered to your event or picked up, booked ${CATERING.leadDays}+ days ahead`,
               ].map((line) => (
                 <li key={line}>
                   <Icon name="check" />

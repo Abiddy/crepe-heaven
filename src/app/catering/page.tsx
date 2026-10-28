@@ -9,7 +9,7 @@ import "./catering.css";
 export const metadata = {
   title: "Catering — Crepe Heaven",
   description:
-    "Crepe Heaven catering in Lawndale: $22 per plate, 25 plate minimum. Choose up to 5 crepes plus drinks and book online for pickup.",
+    "Crepe Heaven catering in Lawndale: $22 per plate, 25 plate minimum. Choose up to 5 crepes plus drinks and book online for delivery or pickup.",
 };
 
 export default function CateringRoute() {

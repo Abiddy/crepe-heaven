@@ -1,5 +1,12 @@
 import { CATERING, cateringCrepes, cateringDrinks } from "@/lib/restaurants/crepe-heaven-catering";
-import { placeCateringOrder, quoteCatering, squareConfig, SquareError, type CateringSelection } from "@/lib/square";
+import {
+  placeCateringOrder,
+  quoteCatering,
+  squareConfig,
+  SquareError,
+  type CateringSelection,
+  type DeliveryAddress,
+} from "@/lib/square";
 import { cardErrorMessage, parsePhone, readJson } from "../cart";
 
 const KEY_RE = /^[a-zA-Z0-9-]{8,40}$/;
@@ -23,6 +30,22 @@ function parseSelection(body: Record<string, unknown>): CateringSelection | stri
   const drinks = pickList(body.drinks, DRINKS, CATERING.maxDrinks);
   if (!drinks) return `Pick 1 to ${CATERING.maxDrinks} drinks.`;
   return { plates, platePrice: CATERING.platePrice, crepes, drinks };
+}
+
+function text(value: unknown, max: number) {
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
+function parseAddress(value: unknown): DeliveryAddress | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const address = {
+    street: text(raw.street, 100),
+    unit: text(raw.unit, 40),
+    city: text(raw.city, 60),
+    zip: text(raw.zip, 10),
+  };
+  return address.street && address.city && /^\d{5}$/.test(address.zip) ? address : null;
 }
 
 function zoneParts(ts: number) {
@@ -78,7 +101,7 @@ export async function POST(request: Request) {
 
   const pickup = pickupTime(body.date, body.time);
   const hour = typeof body.time === "string" ? Number(body.time.slice(0, 2)) : -1;
-  if (!pickup || hour < 9 || hour > 17) return Response.json({ error: "Choose a pickup date and time." }, { status: 400 });
+  if (!pickup || hour < 9 || hour > 17) return Response.json({ error: "Choose a date and time." }, { status: 400 });
   const leadMs = CATERING.leadDays * 24 * 60 * 60 * 1000;
   if (pickup < Date.now() + leadMs - 60 * 60 * 1000 || pickup > Date.now() + 180 * 24 * 60 * 60 * 1000) {
     return Response.json(
@@ -98,6 +121,11 @@ export async function POST(request: Request) {
 
   const notes = typeof body.notes === "string" ? body.notes.trim().slice(0, 300) : "";
 
+  const delivery = body.fulfillment === "PICKUP" ? null : parseAddress(body.address);
+  if (body.fulfillment !== "PICKUP" && !delivery) {
+    return Response.json({ error: "Enter the delivery street, city and 5-digit ZIP." }, { status: 400 });
+  }
+
   const sourceId = typeof body.sourceId === "string" ? body.sourceId : "";
   if (!sourceId || sourceId.length > 300) return Response.json({ error: "Card details are missing." }, { status: 400 });
 
@@ -107,7 +135,8 @@ export async function POST(request: Request) {
   try {
     const result = await placeCateringOrder({
       selection,
-      pickupAt: new Date(pickup).toISOString(),
+      at: new Date(pickup).toISOString(),
+      delivery,
       name,
       phone,
       email,

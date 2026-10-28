@@ -122,7 +122,7 @@ export function GrapePastelPage({ restaurant }: { restaurant: RestaurantConfig }
             </h2>
             <p>
               Every plate includes a crepe and a drink. Pick up to 5 crepes for your group, choose the drinks, and
-              book your pickup online.
+              we&apos;ll deliver to your event or have it ready for pickup.
             </p>
             <ul className="uma-cater__facts">
               <li>

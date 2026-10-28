@@ -44,6 +44,8 @@ export function CrepeCateringPage({ restaurant }: { restaurant: RestaurantConfig
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
+  const [fulfillment, setFulfillment] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
+  const [address, setAddress] = useState({ street: "", unit: "", city: "", zip: "" });
   const [crepeFilter, setCrepeFilter] = useState<"Sweet" | "Savory">("Sweet");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteError, setQuoteError] = useState("");
@@ -120,6 +122,8 @@ export function CrepeCateringPage({ restaurant }: { restaurant: RestaurantConfig
           phone,
           email,
           notes,
+          fulfillment,
+          address: fulfillment === "DELIVERY" ? address : undefined,
           sourceId: result.token,
           idempotencyKey: crypto.randomUUID(),
         }),
@@ -172,7 +176,7 @@ export function CrepeCateringPage({ restaurant }: { restaurant: RestaurantConfig
             </h1>
             <p>
               Birthdays, office lunches, showers and parties. Pick up to {CATERING.maxCrepes} crepes for your group,
-              add drinks, and we&apos;ll have everything ready for pickup.
+              add drinks, and we&apos;ll deliver it to your event or have it ready for pickup.
             </p>
             <ul className="ct-facts">
               <li>
@@ -203,8 +207,17 @@ export function CrepeCateringPage({ restaurant }: { restaurant: RestaurantConfig
             <p className="uma-kicker">You&apos;re booked</p>
             <h2>Thank you, {name.split(" ")[0]}!</h2>
             <p>
-              Your catering order for <strong>{plates} plates</strong> is confirmed. Pickup is{" "}
-              <strong>{placed.when}</strong> at {restaurant.address}.
+              Your catering order for <strong>{plates} plates</strong> is confirmed.{" "}
+              {fulfillment === "DELIVERY" ? (
+                <>
+                  We&apos;ll deliver it <strong>{placed.when}</strong> to {address.street}
+                  {address.unit && `, ${address.unit}`}, {address.city}.
+                </>
+              ) : (
+                <>
+                  Pickup is <strong>{placed.when}</strong> at {restaurant.address}.
+                </>
+              )}
             </p>
             <p className="ct-done__id">
               Order #{placed.orderId.slice(-6).toUpperCase()} · {cents(placed.total)} paid
@@ -356,11 +369,78 @@ export function CrepeCateringPage({ restaurant }: { restaurant: RestaurantConfig
                 <header>
                   <span>4</span>
                   <div>
-                    <h2>Pickup details</h2>
-                    <p>At {restaurant.address}. At least {CATERING.leadDays} days&apos; notice, please.</p>
+                    <h2>Delivery or pickup</h2>
+                    <p>
+                      {fulfillment === "DELIVERY"
+                        ? "We bring it to your event."
+                        : `Pick up at ${restaurant.address}.`}{" "}
+                      At least {CATERING.leadDays} days&apos; notice, please.
+                    </p>
                   </div>
                 </header>
+                <div className="ct-tabs" role="tablist" aria-label="Delivery or pickup">
+                  {(
+                    [
+                      ["DELIVERY", "Delivery"],
+                      ["PICKUP", "Pickup"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="tab"
+                      aria-selected={fulfillment === value}
+                      className={fulfillment === value ? "is-active" : undefined}
+                      onClick={() => setFulfillment(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <div className="ct-fields">
+                  {fulfillment === "DELIVERY" && (
+                    <>
+                      <label className="ct-fields__wide">
+                        <span>Event address</span>
+                        <input
+                          required
+                          autoComplete="address-line1"
+                          placeholder="Street address"
+                          value={address.street}
+                          onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                        />
+                      </label>
+                      <label className="ct-fields__wide">
+                        <span>Apt, suite, building (optional)</span>
+                        <input
+                          autoComplete="address-line2"
+                          value={address.unit}
+                          onChange={(e) => setAddress({ ...address, unit: e.target.value })}
+                        />
+                      </label>
+                      <label>
+                        <span>City</span>
+                        <input
+                          required
+                          autoComplete="address-level2"
+                          value={address.city}
+                          onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                        />
+                      </label>
+                      <label>
+                        <span>ZIP</span>
+                        <input
+                          required
+                          inputMode="numeric"
+                          pattern="\d{5}"
+                          maxLength={5}
+                          autoComplete="postal-code"
+                          value={address.zip}
+                          onChange={(e) => setAddress({ ...address, zip: e.target.value.replace(/\D/g, "") })}
+                        />
+                      </label>
+                    </>
+                  )}
                   <label>
                     <span>Date</span>
                     <input required type="date" min={minDate} value={date} onChange={(e) => setDate(e.target.value)} />
@@ -388,7 +468,7 @@ export function CrepeCateringPage({ restaurant }: { restaurant: RestaurantConfig
                     <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                   </label>
                   <label className="ct-fields__wide">
-                    <span>Notes (allergies, event details)</span>
+                    <span>Notes (allergies, gate codes, event details)</span>
                     <textarea rows={3} maxLength={300} value={notes} onChange={(e) => setNotes(e.target.value)} />
                   </label>
                 </div>
@@ -409,6 +489,14 @@ export function CrepeCateringPage({ restaurant }: { restaurant: RestaurantConfig
                   <div>
                     <dt>Drinks</dt>
                     <dd>{drinks.length ? drinks.join(", ") : "Pick up to 5"}</dd>
+                  </div>
+                  <div>
+                    <dt>{fulfillment === "DELIVERY" ? "Delivery" : "Pickup"}</dt>
+                    <dd>
+                      {fulfillment === "DELIVERY"
+                        ? [address.street, address.city].filter(Boolean).join(", ") || "Add the event address"
+                        : restaurant.address}
+                    </dd>
                   </div>
                 </dl>
                 <dl className="mn-totals">
