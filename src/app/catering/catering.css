@@ -418,6 +418,10 @@
   margin-top: 1rem;
 }
 
+.ct-summary__card .mn-wallets:not(.is-empty) {
+  margin-top: 1rem;
+}
+
 .ct-summary__card .mn-cardform {
   margin-top: 1rem;
 }

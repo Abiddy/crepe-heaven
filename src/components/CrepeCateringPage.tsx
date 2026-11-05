@@ -2,9 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CrepeChat } from "@/components/CrepeChat";
-import { SQUARE_SANDBOX, useSquareCard } from "@/components/CrepeCheckout";
+import {
+  SQUARE_SANDBOX,
+  useSquareCard,
+  useSquareWallets,
+  WalletButtons,
+  type TokenResult,
+} from "@/components/CrepeCheckout";
 import { formatPrice } from "@/lib/recommend";
 import { CATERING, cateringCrepes, cateringDrinks } from "@/lib/restaurants/crepe-heaven-catering";
 import type { RestaurantConfig } from "@/lib/types";
@@ -59,6 +65,8 @@ export function CrepeCateringPage({ restaurant }: { restaurant: RestaurantConfig
   const ready = crepes.length > 0 && drinks.length > 0;
   const estimate = plates * CATERING.platePrice;
   const { cardRef, cardReady, cardError } = useSquareCard(ready && !placed, "#ct-card");
+  const { applePay, googlePay } = useSquareWallets(ready && !placed, quote?.total ?? null, "#ct-gpay");
+  const formRef = useRef<HTMLFormElement>(null);
 
   const selectionKey = JSON.stringify([plates, crepes, drinks]);
   useEffect(() => {
@@ -98,15 +106,21 @@ export function CrepeCateringPage({ restaurant }: { restaurant: RestaurantConfig
 
   const shownCrepes = useMemo(() => cateringCrepes.filter((c) => c.kind === crepeFilter), [crepeFilter]);
 
-  async function pay(e: React.FormEvent) {
+  function payWithCard(e: React.FormEvent) {
     e.preventDefault();
-    if (!cardRef.current || !quote) return;
+    const card = cardRef.current;
+    if (card) void pay(() => card.tokenize());
+  }
+
+  async function pay(tokenize: () => Promise<TokenResult>) {
+    if (!quote || paying || !formRef.current?.reportValidity()) return;
     setPaying(true);
     setPayError("");
     try {
-      const result = await cardRef.current.tokenize();
+      const result = await tokenize();
       if (result.status !== "OK" || !result.token) {
-        setPayError(result.errors?.[0]?.message ?? "Check your card details.");
+        if (result.errors?.length) setPayError(result.errors[0].message);
+        else if (result.status !== "Cancel") setPayError("Check your payment details.");
         return;
       }
       const res = await fetch("/api/square/catering", {
@@ -230,7 +244,7 @@ export function CrepeCateringPage({ restaurant }: { restaurant: RestaurantConfig
             <p className="ct-done__fine">Questions or changes? Call us at {restaurant.phone}.</p>
           </section>
         ) : (
-          <form className="ct-build" onSubmit={pay}>
+          <form ref={formRef} className="ct-build" onSubmit={payWithCard}>
             <div className="ct-steps">
               <section className="ct-step">
                 <header>
@@ -523,6 +537,13 @@ export function CrepeCateringPage({ restaurant }: { restaurant: RestaurantConfig
                         <strong>12345</strong>.
                       </p>
                     )}
+                    <WalletButtons
+                      applePay={applePay}
+                      googlePay={googlePay}
+                      googleId="ct-gpay"
+                      disabled={!quote || paying}
+                      onPay={(tokenize) => void pay(tokenize)}
+                    />
                     <div id="ct-card" className="mn-cardform" />
                     {!cardReady && !cardError && <p className="mn-hint">Loading secure card form…</p>}
                     {(payError || cardError) && <p className="mn-error">{payError || cardError}</p>}

@@ -3,15 +3,33 @@
 import { useEffect, useRef, useState } from "react";
 import { formatPrice } from "@/lib/recommend";
 
+export type TokenResult = { status: string; token?: string; errors?: { message: string }[] };
+
 type SquareCard = {
   attach: (selector: string) => Promise<void>;
-  tokenize: () => Promise<{ status: string; token?: string; errors?: { message: string }[] }>;
+  tokenize: () => Promise<TokenResult>;
   destroy: () => Promise<void>;
+};
+
+type SquareWallet = {
+  attach?: (selector: string, options?: Record<string, string>) => Promise<void>;
+  tokenize: () => Promise<TokenResult>;
+  destroy: () => Promise<void>;
+};
+
+type PaymentRequestTotal = { amount: string; label: string; pending?: boolean };
+type SquarePaymentRequest = { update: (changes: { total: PaymentRequestTotal }) => boolean };
+
+type SquarePayments = {
+  card: () => Promise<SquareCard>;
+  paymentRequest: (options: { countryCode: string; currencyCode: string; total: PaymentRequestTotal }) => SquarePaymentRequest;
+  applePay: (request: SquarePaymentRequest) => Promise<SquareWallet>;
+  googlePay: (request: SquarePaymentRequest) => Promise<SquareWallet>;
 };
 
 declare global {
   interface Window {
-    Square?: { payments: (appId: string, locationId: string) => { card: () => Promise<SquareCard> } };
+    Square?: { payments: (appId: string, locationId: string) => SquarePayments };
   }
 }
 
@@ -43,6 +61,122 @@ function loadSquareSdk() {
   return sdkPromise;
 }
 
+let paymentsInstance: SquarePayments | null = null;
+async function squarePayments() {
+  await loadSquareSdk();
+  paymentsInstance ??= window.Square!.payments(APP_ID, LOCATION_ID);
+  return paymentsInstance;
+}
+
+function walletTotal(totalCents: number | null): PaymentRequestTotal {
+  return totalCents
+    ? { amount: (totalCents / 100).toFixed(2), label: "Crepe Heaven" }
+    : { amount: "0.00", label: "Crepe Heaven", pending: true };
+}
+
+/**
+ * Sets up Apple Pay and Google Pay while `active` is true. Each is null when the
+ * device or browser doesn't support it. Google Pay renders its button into `googleSelector`.
+ */
+export function useSquareWallets(active: boolean, totalCents: number | null, googleSelector: string) {
+  const [applePay, setApplePay] = useState<SquareWallet | null>(null);
+  const [googlePay, setGooglePay] = useState<SquareWallet | null>(null);
+  const requestRef = useRef<SquarePaymentRequest | null>(null);
+  const totalRef = useRef(totalCents);
+
+  useEffect(() => {
+    if (!active || !APP_ID || !LOCATION_ID) return;
+    let cancelled = false;
+    const created: SquareWallet[] = [];
+    (async () => {
+      let payments: SquarePayments;
+      try {
+        payments = await squarePayments();
+      } catch {
+        return;
+      }
+      if (cancelled) return;
+      const request = payments.paymentRequest({
+        countryCode: "US",
+        currencyCode: "USD",
+        total: walletTotal(totalRef.current),
+      });
+      requestRef.current = request;
+
+      try {
+        const apple = await payments.applePay(request);
+        created.push(apple);
+        if (!cancelled) setApplePay(apple);
+      } catch {
+        // Not Safari on an Apple Pay device, or the domain isn't verified with Square.
+      }
+      try {
+        const google = await payments.googlePay(request);
+        created.push(google);
+        if (cancelled) return;
+        await google.attach?.(googleSelector, { buttonColor: "black", buttonSizeMode: "fill", buttonType: "long" });
+        if (!cancelled) setGooglePay(google);
+      } catch {
+        // Google Pay unavailable in this browser.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      created.forEach((wallet) => void wallet.destroy());
+      requestRef.current = null;
+      setApplePay(null);
+      setGooglePay(null);
+    };
+  }, [active, googleSelector]);
+
+  useEffect(() => {
+    totalRef.current = totalCents;
+    requestRef.current?.update({ total: walletTotal(totalCents) });
+  }, [totalCents]);
+
+  return { applePay, googlePay };
+}
+
+/** Apple Pay / Google Pay buttons plus an "or pay with card" divider. Renders nothing visible when neither is available. */
+export function WalletButtons({
+  applePay,
+  googlePay,
+  googleId,
+  disabled,
+  onPay,
+}: {
+  applePay: SquareWallet | null;
+  googlePay: SquareWallet | null;
+  googleId: string;
+  disabled: boolean;
+  onPay: (tokenize: () => Promise<TokenResult>) => void;
+}) {
+  const any = Boolean(applePay || googlePay);
+  return (
+    <div className={`mn-wallets${disabled ? " is-disabled" : ""}${any ? "" : " is-empty"}`}>
+      {applePay && (
+        <button
+          type="button"
+          className="mn-applepay"
+          aria-label="Pay with Apple Pay"
+          disabled={disabled}
+          onClick={() => onPay(() => applePay.tokenize())}
+        />
+      )}
+      <div
+        id={googleId}
+        className="mn-gpay"
+        role="button"
+        tabIndex={googlePay ? 0 : -1}
+        aria-label="Pay with Google Pay"
+        aria-hidden={!googlePay}
+        onClick={() => googlePay && !disabled && onPay(() => googlePay.tokenize())}
+      />
+      {any && <p className="mn-or">or pay with card</p>}
+    </div>
+  );
+}
+
 /** Mounts Square's card form into `selector` while `active` is true. */
 export function useSquareCard(active: boolean, selector: string) {
   const cardRef = useRef<SquareCard | null>(null);
@@ -59,9 +193,7 @@ export function useSquareCard(active: boolean, selector: string) {
     let card: SquareCard | null = null;
     (async () => {
       try {
-        await loadSquareSdk();
-        if (cancelled) return;
-        const created = await window.Square!.payments(APP_ID, LOCATION_ID).card();
+        const created = await (await squarePayments()).card();
         if (cancelled) {
           void created.destroy();
           return;
@@ -147,7 +279,10 @@ export function CrepeCheckout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, linesKey]);
 
-  const { cardRef, cardReady, cardError } = useSquareCard(open && lines.length > 0 && !placed, "#mn-card");
+  const checkoutActive = open && lines.length > 0 && !placed;
+  const { cardRef, cardReady, cardError } = useSquareCard(checkoutActive, "#mn-card");
+  const { applePay, googlePay } = useSquareWallets(checkoutActive, quote?.total ?? null, "#mn-gpay");
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -161,15 +296,21 @@ export function CrepeCheckout({
     onClose();
   }
 
-  async function pay(e: React.FormEvent) {
+  function payWithCard(e: React.FormEvent) {
     e.preventDefault();
-    if (!cardRef.current || !quote) return;
+    const card = cardRef.current;
+    if (card) void pay(() => card.tokenize());
+  }
+
+  async function pay(tokenize: () => Promise<TokenResult>) {
+    if (!quote || paying || !formRef.current?.reportValidity()) return;
     setPaying(true);
     setPayError("");
     try {
-      const result = await cardRef.current.tokenize();
+      const result = await tokenize();
       if (result.status !== "OK" || !result.token) {
-        setPayError(result.errors?.[0]?.message ?? "Check your card details.");
+        if (result.errors?.length) setPayError(result.errors[0].message);
+        else if (result.status !== "Cancel") setPayError("Check your payment details.");
         return;
       }
       const res = await fetch("/api/square/checkout", {
@@ -243,7 +384,7 @@ export function CrepeCheckout({
             <span>Tap + on any dish to add it.</span>
           </div>
         ) : (
-          <form onSubmit={pay} className="mn-form">
+          <form ref={formRef} onSubmit={payWithCard} className="mn-form">
             <ul className="mn-lines">
               {lines.map(([k, qty]) => (
                 <li key={k}>
@@ -293,7 +434,14 @@ export function CrepeCheckout({
             </fieldset>
 
             <fieldset className="mn-fields">
-              <legend>Card</legend>
+              <legend>Payment</legend>
+              <WalletButtons
+                applePay={applePay}
+                googlePay={googlePay}
+                googleId="mn-gpay"
+                disabled={!quote || paying}
+                onPay={(tokenize) => void pay(tokenize)}
+              />
               <div id="mn-card" className="mn-cardform" />
               {!cardReady && !cardError && <p className="mn-hint">Loading secure card form…</p>}
             </fieldset>
