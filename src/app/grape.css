@@ -953,6 +953,8 @@ html.lenis body {
   grid-row: 3;
   justify-self: center;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 0.75rem;
   animation: uma-poster-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.9s both;
 }
@@ -994,6 +996,17 @@ html.lenis body {
 .uma-poster__btn--ghost:hover {
   color: var(--poster-wine);
   background: var(--poster-ink);
+}
+
+.uma-poster__btn--foodol {
+  color: #003020;
+  background: #83f2a4;
+  border-color: #003020;
+}
+
+.uma-poster__btn--foodol:hover {
+  color: #83f2a4;
+  background: #003020;
 }
 
 .uma-poster__social {
@@ -1105,6 +1118,10 @@ html.lenis body {
   .uma-poster__btn {
     flex: 1;
     min-width: 0;
+  }
+
+  .uma-poster__btn--foodol {
+    flex-basis: 100%;
   }
 
   .uma-poster__social {

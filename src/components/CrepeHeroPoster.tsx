@@ -101,6 +101,12 @@ export function CrepeHeroPoster({
         <Link href="/catering" className="uma-poster__btn uma-poster__btn--ghost">
           Catering
         </Link>
+        <a
+          href="https://www.foodol.app/crepe-heaven?src=website"
+          className="uma-poster__btn uma-poster__btn--foodol"
+        >
+          Let Foodol pick for you
+        </a>
       </div>
 
       <div className="uma-poster__social">

@@ -62,6 +62,7 @@ export function GrapePastelPage({ restaurant }: { restaurant: RestaurantConfig }
           <a href="#loved">Dishes</a>
           <Link href="/catering">Catering</Link>
           <a href="#visit">Visit</a>
+          <a href="https://www.foodol.app/crepe-heaven?src=website">Let Foodol pick</a>
         </nav>
         <div className="uma-nav__end">
           <Link className="uma-pill uma-pill--outline uma-nav__order" href="/menu">
@@ -97,6 +98,9 @@ export function GrapePastelPage({ restaurant }: { restaurant: RestaurantConfig }
           </Link>
           <a href="#visit" onClick={() => setMenuOpen(false)}>
             Visit
+          </a>
+          <a href="https://www.foodol.app/crepe-heaven?src=website">
+            Let Foodol pick for you
           </a>
         </div>
       )}
